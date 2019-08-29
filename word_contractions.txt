@@ -1,0 +1,30 @@
+long,short
+i am,im
+i have,ive
+i will,ill
+is not,isnt
+do not,dont
+does not,doesnt
+did not,didnt
+have not,havent
+has not,hasnt
+was not,wasnt
+were not,werent
+had not,hadnt
+can not,cant
+will not,wont
+cannot,cant
+are not,arent
+could not,couldnt
+would not,wouldnt
+should not,shoudnt
+you are,youre
+you have,youve
+you will,woull
+they are,theyre
+they have,theyve
+they will,theyll
+we have,weve
+it is,its
+it will,itll
+

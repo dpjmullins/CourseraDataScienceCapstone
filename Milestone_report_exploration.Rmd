@@ -1,0 +1,154 @@
+---
+title: "Data Science Capstone: Milestone Report"
+author: "David Mullins"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: html_document
+---
+
+## Introduction
+
+This report describes the exploratory analysis of the data for the Data Science Specialisation Capstone Project.
+The data is made up of many media 'posts' or articles deriving from 3 different sources:
+- Twitter
+- Blogs
+- News
+
+## File input and summary
+
+### Read in files
+
+```{r read_files}
+library(readr)
+twit <- read_lines(file = "final/en_US/en_US.twitter.txt")
+blogs <- read_lines(file = "final/en_US/en_US.blogs.txt")
+news <- read_lines(file = "final/en_US/en_US.news.txt") 
+```
+
+#### Number of lines in files
+
+There are more tweets than blog posts or news headlines. 
+
+```{r number_lines}
+library(knitr)
+num_lines.df <-
+    data.frame(
+        Medium = c("Twitter", "Blogs", "News"),
+        Number_of_lines = sapply(list(twit, blogs, news), length)
+    )
+kable(num_lines.df, caption = "Table: The number of lines in each file")
+```
+
+### Remove punctuation 
+
+```{r remove_punctuation}
+## Remove the punctuation marks from each file
+twit_p <- gsub(pattern = "[[:punct:]]", replacement = "", x = twit)
+blogs_p <- gsub(pattern = "[[:punct:]]", replacement = "", x = blogs)
+news_p <- gsub(pattern = "[[:punct:]]", replacement = "", x = news)
+```
+
+### Break sentences down to words
+
+```{r split_sentences}
+library(stringr)
+## Split the posts down to individual words by whitespace
+twit_p_s <- str_split(string = twit_p, pattern = " ")
+blogs_p_s <- str_split(string = blogs_p, pattern = " ")
+news_p_s <- str_split(string = news_p, pattern = " ")
+
+## Remove earlier files to save memory
+rm(twit_p, blogs_p, news_p)
+```
+
+#### Number of words in each file
+
+There are similar numbers of words in each media type. However, the Twitter data is much less dense than the other media types.
+
+```{r number_words}
+library(dplyr)
+num_words.df <-
+    data.frame(
+        Medium = c("Twitter", "Blogs", "News"),
+        ## Add the word counts from all posts of each media type
+        Number_of_words = sapply(list(twit_p_s, blogs_p_s, news_p_s), function(x) { sum(unlist(lapply(x, length)))}) 
+    )
+num_words.df <-
+    num_words.df %>%
+        ## Create a new variable based on the number of words per post
+        mutate(Words_per_post = Number_of_words / num_lines.df$Number_of_lines)
+kable(num_words.df, caption = "Table: The number of words in each medium")
+```
+
+## Summary plots
+
+Load the libraries for creating data summary plots.
+
+```{r plot_libraries}
+library(tm)
+library(SnowballC)
+library(wordcloud)
+library(RColorBrewer)
+```
+
+Load text as a corpus
+
+```{r corpus}
+twit_c <- Corpus(VectorSource(twit))
+blogs_c <- Corpus(VectorSource(blogs))
+news_c <- Corpus(VectorSource(news))
+```
+
+Transform the text.
+
+```{r transform_text, warning=FALSE}
+toSpace <- content_transformer(function (x, pattern) gsub(pattern, " ", x))
+
+text_transformer <- function(text_corpus) {
+    ## Convert symbols to whitespace
+    text_corpus <- tm_map(text_corpus, toSpace, "[[:punct:]]")
+    ## Convert to lower case
+    text_corpus <- tm_map(text_corpus, content_transformer(tolower))
+    ## Remove numbers
+    text_corpus <- tm_map(text_corpus, removeNumbers)
+    ## Remove common English stopwords
+    text_corpus <- tm_map(text_corpus, removeWords, stopwords("english"))
+    ## Remove additional stopwords
+    text_corpus <- tm_map(text_corpus, removeWords, c("rt"))
+    ## Remove extra whitespace
+    text_corpus <- tm_map(text_corpus, stripWhitespace)
+
+    text_corpus
+}
+twit_c_t <- text_transformer(twit_c)
+blogs_c_t <- text_transformer(blogs_c)
+news_c_t <- text_transformer(news_c)
+```
+
+Word cloud figures for each dataset as displayed below.
+
+```{r, fig.cap='A wordcloud figure for the Twitter dataset.'}
+set.seed(100)
+wordcloud(words = twit_c_t, min.freq = 1,
+    max.words=100, random.order=FALSE, rot.per=0.35,
+    colors=brewer.pal(8, "Dark2"))
+```
+
+```{r, fig.cap='A wordcloud figure for the Blogs dataset.'}
+set.seed(100)
+wordcloud(words = blogs_c_t, min.freq = 1,
+    max.words=100, random.order=FALSE, rot.per=0.35,
+    colors=brewer.pal(8, "Dark2"))
+```
+
+```{r, fig.cap='A wordcloud figure for the News dataset.'}
+set.seed(100)
+wordcloud(words = news_c_t, min.freq=1,
+    max.words=100, random.order=FALSE, rot.per=0.35,
+    colors=brewer.pal(8, "Dark2"))
+```
+
+## Prediction algorithm plans
+
+The plan for this dataset is to build a prediction algorithm in a Shiny app. 
+This app will be capable of predicting the next words to follow any input word. 
+The Twitter, Blogs and News datasets will be used as training data for this prediction algorithm.
